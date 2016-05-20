@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Doctor SMS</string>
+    <string name="title_activity_login">LoginActivity</string>
+    <string name="user_details_prefs">com.south.openmrs.doctorsms.userdetails</string>
+    <string name="stored_user_token">authtoken</string>
+    <string name="stored_username">username</string>
+    <string name="stored_user_firstname">firstname</string>
+    <string name="stored_user_lastname">lastname</string>
+    <string name="stored_user_userid">userid</string>
+    <string name="stored_server_url">server_url</string>
+</resources>

@@ -1,0 +1,48 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:id = "@+id/main_layout"
+    android:orientation = "vertical"
+    android:background="#35302C" >
+
+
+
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/chat_recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:dividerHeight="6dp"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:transcriptMode="alwaysScroll"
+            android:background="#32322C"/>
+
+
+    <LinearLayout
+        android:id="@+id/chat_linear_layout_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_alignParentBottom="true"
+        android:background="#FFFFFF" >
+
+        <EditText
+            android:textColor="#000000"
+            android:id="@+id/chat_edit_message"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:hint="Enter Stuff here"/>
+
+        <ImageButton
+            android:id="@+id/chat_send_message"
+            android:layout_width="50dp"
+            android:layout_height="match_parent"
+            android:src="@android:drawable/ic_menu_send"
+            android:hint="Edit Message"/>
+
+    </LinearLayout>
+
+
+</RelativeLayout>
