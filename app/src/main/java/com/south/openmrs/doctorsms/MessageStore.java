@@ -35,8 +35,4 @@ public class MessageStore {
 		if (messages.isEmpty()) return null;
 		else return messages.pop();
 	}
-	
-	
-	
-
 }

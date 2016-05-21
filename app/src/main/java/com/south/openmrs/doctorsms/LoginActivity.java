@@ -11,6 +11,8 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.LruCache;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -19,6 +21,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -26,7 +29,10 @@ public class LoginActivity extends AppCompatActivity {
 
     TextView usernameView;
     TextView passwordView;
-    TextView serverURlView;
+    AutoCompleteTextView serverURlView;
+    SharedPreferences sharedPref;
+    ArrayList<String> urlChoices;
+    ArrayAdapter<String> urlAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,7 +40,15 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.layout);
 
         Button  loginButton = (Button)findViewById(R.id.login_submit);
+        sharedPref = getSharedPreferences(
+                getString(R.string.user_details_prefs), this.MODE_PRIVATE);
 
+        urlChoices = new ArrayList<String>(sharedPref.getStringSet("SAVED_URLS",new HashSet<String>()));
+        urlAdapter = new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_dropdown_item_1line,urlChoices);
+
+        serverURlView = (AutoCompleteTextView) findViewById(R.id.server_url);
+        serverURlView.setThreshold(2);
+        serverURlView.setAdapter(urlAdapter);
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -47,7 +61,7 @@ public class LoginActivity extends AppCompatActivity {
 
         usernameView = (TextView)findViewById(R.id.username_field);
         passwordView = (TextView)findViewById(R.id.password_field);
-        serverURlView = (TextView) findViewById(R.id.server_url);
+        //serverURlView = (AutoCompleteTextView) findViewById(R.id.server_url);
 
         String unStr = usernameView.getText().toString();
         String pwStr = passwordView.getText().toString();
@@ -58,7 +72,7 @@ public class LoginActivity extends AppCompatActivity {
         params.add(new NameValuePair("userName",unStr));
         params.add(new NameValuePair("password",pwStr));
         //"http://10.0.0.16:8080/openmrsMessage/login"
-        String urlResource = "/openmrsMessage/login";
+        final String urlResource = "/openmrsMessage/login";
         //HttpPost post = new HttpPost(this, url);
         //post.execute(params);
 
@@ -84,10 +98,15 @@ public class LoginActivity extends AppCompatActivity {
                             Toast.makeText(parentContext, response, Toast.LENGTH_SHORT).show();
 
 
-                            SharedPreferences sharedPref = parentContext.getSharedPreferences(
-                                    getString(R.string.user_details_prefs), parentContext.MODE_PRIVATE);
+
 
                             SharedPreferences.Editor editor = sharedPref.edit();
+
+                            if(!urlChoices.contains(mServerUrl)){
+                                urlChoices.add(mServerUrl);
+                                editor.putStringSet("SAVED_URLS",new HashSet<String>(urlChoices) );
+                            }
+
                             editor.putString(getString(R.string.stored_user_token), loginResult.getString("authtoken"));
                             editor.putString(getString(R.string.stored_username), loginResult.getString("username"));
                             editor.putString(getString(R.string.stored_user_userid), loginResult.getString("userid"));

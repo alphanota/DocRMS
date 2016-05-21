@@ -8,15 +8,6 @@
 
 
 
-        <android.support.v7.widget.RecyclerView
-            android:id="@+id/chat_recycler_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:dividerHeight="6dp"
-            android:paddingLeft="10dp"
-            android:paddingRight="10dp"
-            android:transcriptMode="alwaysScroll"
-            android:background="#32322C"/>
 
 
     <LinearLayout
@@ -43,6 +34,18 @@
             android:hint="Edit Message"/>
 
     </LinearLayout>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/chat_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:dividerHeight="6dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:transcriptMode="alwaysScroll"
+        android:background="#32322C"
+        android:layout_above="@id/chat_linear_layout_1"/>
+
 
 
 </RelativeLayout>

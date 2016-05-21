@@ -12,12 +12,14 @@ public class MessageBlock implements Serializable {
 	private final long mSenderId;
 	private final long mRecipientId;
 	private final String mMessage;
+	private final long mTime;
 	
 	
-	MessageBlock(long sid, long rid, String msg){
+	MessageBlock(long sid, long rid, String msg, long time){
 		mSenderId = sid;
 		mRecipientId = rid;
 		mMessage = msg;
+		mTime = time;
 	}
 	
 	public JSONObject toJSON(){
@@ -27,11 +29,10 @@ public class MessageBlock implements Serializable {
 			resp.put("senderid",mSenderId);
 			resp.put("recipientid", mRecipientId);
 			resp.put("message", mMessage);
+			resp.put("time", mTime);
 		} catch (JSONException e){
 
 		}
-		
-		
 		return resp;
 		
 	}
@@ -42,7 +43,7 @@ public class MessageBlock implements Serializable {
     public long getSenderId(){
         return mSenderId;
     }
-	
+	public  long getTime() {return mTime;}
 	public String toJSONString(){
 		return toJSON().toString();
 	}

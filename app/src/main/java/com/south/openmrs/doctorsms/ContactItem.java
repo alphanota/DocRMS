@@ -23,7 +23,7 @@ public class ContactItem extends Item implements Serializable {
 
 
         mId = Long.parseLong(uid);
-
+        mUn = un;
         mLn = ln;
         mFn = fn;
         mContactName = fn + " " + ln;
@@ -37,6 +37,10 @@ public class ContactItem extends Item implements Serializable {
 
     public long getId(){
         return mId;
+    }
+
+    public String getUn(){
+        return mUn;
     }
 
 }

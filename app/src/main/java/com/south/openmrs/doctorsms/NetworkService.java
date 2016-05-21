@@ -12,10 +12,19 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
+
+
 
 public class NetworkService extends Service {
 
@@ -28,8 +37,9 @@ public class NetworkService extends Service {
     protected boolean keepConnecting = true;
     public final static String NEW_MESSAGE = "com.south.openmrs.doctorsms.service.reciever";
     public final static String NEW_MESSAGES = "com.south.openmrs.doctorsms.service.recievers";
-
+    boolean MaintainConnection = true;
     Hashtable<Long,MessageBlock> messages;
+    protected static final String FAIL_RESPONSE = "No post parameters";
 
 
     public NetworkService() {
@@ -47,13 +57,15 @@ public class NetworkService extends Service {
     @Override
     public void onCreate() {
         // The service is being created
+
+        messages = new Hashtable<Long,MessageBlock> ();
         try{
             mServiceUser = SharedPrefsHelper.loadUserDataFromPrefs(getApplicationContext());
         } catch (Exception e){
             Log.d("onStartCommand: ",e.getLocalizedMessage(),e);
         }
-
-        new DataRequestThread().start();
+        String urlResource = "/openmrsMessage/GetMessage";
+        new DataRequestThread(urlResource).start();
         //TODO: Implement additional methods if necessary
     }
 
@@ -70,7 +82,7 @@ public class NetworkService extends Service {
             if( "fail".equals(status)){
 
 
-                System.out.println("Recieving says fail");
+                System.out.println("Receiving says fail");
 
 
             }
@@ -106,9 +118,15 @@ public class NetworkService extends Service {
                 long rid =   Long.parseLong(jResponse.getString("recipientid"));
                 String msg =  jResponse.getString("message");
 
-                MessageBlock msgBlock = new MessageBlock(sid,rid,msg);
-                Intent intent = new Intent(this.NEW_MESSAGE);
+                MessageBlock msgBlock = new MessageBlock(sid,rid,msg, System.currentTimeMillis());
 
+                SharedPrefsHelper.saveMessageOnBackground(getApplicationContext(),msgBlock);
+
+
+
+
+
+                Intent intent = new Intent(this.NEW_MESSAGE);
                 intent.putExtra("message",msgBlock);
                 sendBroadcast(intent);
 
@@ -116,9 +134,6 @@ public class NetworkService extends Service {
             catch (JSONException e){
 
             }
-
-
-
 
 
     }
@@ -155,7 +170,21 @@ public class NetworkService extends Service {
          */
 
 
-        long id = intent.getLongExtra("senderid",0L);
+
+        // update userinfo... especially remote server URL
+
+        try{
+            mServiceUser = SharedPrefsHelper.loadUserDataFromPrefs(getApplicationContext());
+        } catch (Exception e){
+            Log.d("onStartCommand: ",e.getLocalizedMessage(),e);
+        }
+
+
+
+
+
+            long id = intent.getLongExtra("senderid",0L);
+
 
 
         MessageBlock block = messages.get(id);
@@ -190,20 +219,35 @@ public class NetworkService extends Service {
 
         //make sure connections are closed
         // set loop conditions to false
+        MaintainConnection = false;
     }
 
 
 
-    private class DataRequestThread extends Thread {
-        boolean MaintainConnection = true;
 
-        DataRequestThread() {
+
+
+
+
+    private class DataRequestThread extends Thread {
+
+        private String mUrlString;
+        private String mUrlResource;
+        private String mUrlRequest;
+        DataRequestThread(String urlResource) {
             super();
+            mUrlString =mServiceUser.getServerUrl();
+            mUrlResource = urlResource;
+            List<NameValuePair> params = new LinkedList<NameValuePair>();
+            params.add(new NameValuePair("userid",""+mServiceUser.getId()));
+            params.add(new NameValuePair("auth",mServiceUser.getAuth()));
+            mUrlRequest = HttpPost.buildParamString(params);
+            // hopefully gc'ed soon
+            params = null;
         }
 
 
         public void run() {
-            HttpPost serverConnection;
 
             // start server connection
 
@@ -215,29 +259,91 @@ public class NetworkService extends Service {
             // auth=dontcare
 
             //"http://10.0.0.16:8080/openmrsMessage/login"
-            String urlResource = "/openmrsMessage/GetMessage";
-            List<NameValuePair> params = new LinkedList<NameValuePair>();
-            params.add(new NameValuePair("userid",""+mServiceUser.getId()));
-            params.add(new NameValuePair("auth",mServiceUser.getAuth()));
 
             while (MaintainConnection) {
 
-               HttpPost mServerListener = new HttpPost(NetworkService.this, mServiceUser.getServerUrl(),urlResource){
-
-
-
-
-                    @Override
-                    protected void onPostExecute(String response) {
-                        processResponse(response);
+                String response = getMessage();
+                try{
+                    if ( (response == null) | response.equals(FAIL_RESPONSE) ){
+                        return;
                     }
-                };
-                mServerListener.execute(params);
+                } catch (NullPointerException e){
+
+                }
+
+                processResponse(response);
+
+            }
+
+
+        }
+
+
+
+        protected String getMessage(){
+
+            String serverResponse = null;
+            long responseCode = -51278;
+
+            DataOutputStream wr = null;
+            BufferedReader in = null;
+
+
+            URL url;
+            try {
+                url = new URL(mUrlString + mUrlResource);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setDoOutput(true);
+                //connection.setChunkedStreamingMode(0);
+
+                //connection.setRequestMethod("GET");
+                // no space in param args
+                wr = new DataOutputStream(connection.getOutputStream());
+                wr.writeBytes(mUrlRequest);
+                wr.flush();
+                wr.close();
+
+                responseCode = connection.getResponseCode();
+                in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+
+                System.out.println("NetworkService: waiting for "+url.getHost()+ " "+mUrlRequest);
+
+                // block
+                serverResponse = in.readLine();
+
+                System.out.println("Responsecode = "+responseCode);
+                if(serverResponse != null ) System.out.println(serverResponse);
+
+            } catch (MalformedURLException malUrl) {
+                malUrl.printStackTrace();
+
+
+            } catch (IOException e) {
+
+            } finally {
+                try{
+                    if (wr != null){
+                        wr.close();
+                    }
+                    if (in != null){
+                        in.close();
+                    }
+
+                    url = null;
+                }
+                catch (IOException e){
+                    e.printStackTrace();
+                }
 
 
             }
 
 
+
+
+
+
+            return serverResponse;
         }
     }
 

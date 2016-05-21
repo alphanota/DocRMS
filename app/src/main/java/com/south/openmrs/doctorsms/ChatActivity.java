@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
@@ -15,6 +16,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.LruCache;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
@@ -42,6 +44,7 @@ public class ChatActivity extends AppCompatActivity {
     boolean mBound = false;
 
 
+    GetMessagesTask getMsgTask;
 
 
     @Override
@@ -49,6 +52,8 @@ public class ChatActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat_activity);
 
+        getWindow().setSoftInputMode(
+                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
         SharedPreferences sharedPref = getSharedPreferences(
                 getString(R.string.user_details_prefs), MODE_PRIVATE);
 
@@ -102,14 +107,13 @@ public class ChatActivity extends AppCompatActivity {
         serviceIntent.putExtra("senderid",mRemoteContact.getId());
         startService(serviceIntent);
         bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE);
-
-
     }
 
     @Override
     protected void onPause() {
         this.unregisterReceiver(lreceiver);
         this.unregisterReceiver(lreceivers);
+        unbindService(mConnection);
         super.onPause();
     }
 
@@ -120,11 +124,54 @@ public class ChatActivity extends AppCompatActivity {
         // use a linear layout manager
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
         linearLayoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+        linearLayoutManager.setStackFromEnd(true);
         //mLayoutManager = new LinearLayoutManager(context);
 
         mRecyclerView.setLayoutManager(linearLayoutManager);
         mAdapter = new MyAdapter(postList, context, mMemoryCache);
         mRecyclerView.setAdapter(mAdapter);
+
+        getMsgTask = new GetMessagesTask(getApplicationContext(),mRemoteContact.getId(),mCurrentUser.getId()){
+
+            @Override
+            public void onPostExecute(Cursor result){
+
+
+                result.moveToPosition(-1);
+                while(result.moveToNext()){
+
+                    int sidPosition = result.getColumnIndexOrThrow(MessageBlockStore.FeedEntry.COLUMN_NAME_SENDER_ID);
+                    int ridPosition = result.getColumnIndexOrThrow(MessageBlockStore.FeedEntry.COLUMN_NAME_REC);
+                    int timePosition = result.getColumnIndexOrThrow(MessageBlockStore.FeedEntry.COLUMN_NAME_TIMESTAMP);
+                    int msgPosition = result.getColumnIndexOrThrow(MessageBlockStore.FeedEntry.COLUMN_NAME_MESSAGE);
+
+                    String msg = result.getString(msgPosition);
+                    long sid = result.getLong(sidPosition);
+                    long rid = result.getLong(ridPosition);
+                    long time = result.getLong(timePosition);
+
+
+                    MessageBlock block = new MessageBlock(sid,rid,msg,time);
+
+                    MessageItem item = new MessageItem(mCurrentUser,mRemoteContact,block);
+
+                    postList.add(item);
+
+                }
+
+
+                mAdapter.notifyDataSetChanged();
+                mRecyclerView.scrollToPosition(postList.size()-1);
+                
+
+
+
+
+
+            }
+        };
+
+        getMsgTask.execute(0L);
 
 
 
@@ -132,11 +179,14 @@ public class ChatActivity extends AppCompatActivity {
 
     public void sendMessage() {
         //containerView
+        // gets message from UI fields
         EditText editText = (EditText) findViewById(R.id.chat_edit_message);
         String message = editText.getText().toString();
 
         //===================================================================
 
+        // we create a new MessageItem
+        // update the recycler view holding the messages etc..
         sendMessageToScreen(message,editText);
 
         //====================================================================
@@ -154,26 +204,33 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void sendMessageToScreen(String message, EditText editText){
-        MessageItem post = new MessageItem(mCurrentUser,mRemoteContact,message);
+
+
+        MessageBlock msgBlock = new MessageBlock(mCurrentUser.getId(),mRemoteContact.getId(),message, System.currentTimeMillis());
+
+        MessageItem post = new MessageItem(mCurrentUser,mRemoteContact,msgBlock);
+
+
+        SharedPrefsHelper.saveMessageOnBackground(getApplicationContext(),msgBlock);
+
         postList.add(post);
         mAdapter.notifyDataSetChanged();
+        mRecyclerView.scrollToPosition(postList.size()-1);
         editText.setText("");
     }
 
 
     private void sendForeignMessageToScreen(MessageBlock msg){
 
-
         long sid = msg.getSenderId();
-        String message = msg.getMessage();
 
+        if (sid == mRemoteContact.getId()){
+            MessageItem post = new MessageItem(mCurrentUser, mRemoteContact,msg);
+            postList.add(post);
+            mAdapter.notifyDataSetChanged();
+            mRecyclerView.scrollToPosition(postList.size()-1);
 
-
-        MessageItem post = new MessageItem(mRemoteContact.mContactName,message);
-        postList.add(post);
-        mAdapter.notifyDataSetChanged();
-
-
+        }
     }
 
     private void sendMessageToNetwork(String message){
@@ -200,6 +257,9 @@ public class ChatActivity extends AppCompatActivity {
         String urlResource = "/openmrsMessage/sendMessage";
 
         HttpPost mPost = new HttpPost(this,serverUrl,urlResource){
+
+
+
             @Override
             protected void onPostExecute(String response) {
                 if (response != null) {
@@ -268,9 +328,6 @@ public class ChatActivity extends AppCompatActivity {
 
                 //}
 
-
-
-
             }//bundle!=null
         } //overr. onReceive
     }; //new broadcast
@@ -287,9 +344,8 @@ public class ChatActivity extends AppCompatActivity {
             NetworkBinder binder = (NetworkBinder) service;
             mService = binder.getService();
             mBound = true;
-            //mService.getcurchatter();
+
             mService.connect(serviceIntent);
-            //if (ACTIVITYMAIN == 5)requestposts();
 
         }
 

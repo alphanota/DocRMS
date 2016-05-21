@@ -101,7 +101,7 @@ public class HttpPost extends AsyncTask<List<NameValuePair>, Integer, String>{
         return serverResponse;
     }
 
-    protected static String buildParamString( List<NameValuePair> params){
+    public static String buildParamString( List<NameValuePair> params){
         // "userName=" + username + "&password=" + password;
         StringBuilder builder = new StringBuilder();
         boolean secondParam = false;

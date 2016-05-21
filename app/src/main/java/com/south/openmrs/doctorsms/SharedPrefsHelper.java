@@ -1,7 +1,10 @@
 package com.south.openmrs.doctorsms;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.sqlite.SQLiteDatabase;
+import android.os.AsyncTask;
 
 /**
  * Created by angel on 5/17/16.
@@ -26,6 +29,52 @@ public class SharedPrefsHelper {
         User user = new User(userIdLong,storedFirstName,storedLastname,storedUsername,storedUserToken);
         user.setServerUrl(storedServerUrl);
         return user;
+    }
+
+
+    public static long saveMessage(Context context, MessageBlock msg){
+
+        MessageBlockStore  msgStore = new MessageBlockStore(context);
+
+        //get the data repository in write mode
+        SQLiteDatabase db = msgStore.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(MessageBlockStore.FeedEntry.COLUMN_NAME_SENDER_ID, msg.getSenderId());
+        values.put(MessageBlockStore.FeedEntry.COLUMN_NAME_REC,msg.getRecipient());
+        values.put(MessageBlockStore.FeedEntry.COLUMN_NAME_MESSAGE, msg.getMessage());
+        values.put(MessageBlockStore.FeedEntry.COLUMN_NAME_ENCKEY,"PLAINTEXT");
+        values.put(MessageBlockStore.FeedEntry.COLUMN_NAME_TIMESTAMP,msg.getTime());
+        long newRowId;
+
+        newRowId = db.insert(MessageBlockStore.FeedEntry.TABLE_NAME, null,
+                values);
+
+
+
+        //db.close();
+
+        return newRowId;
+
+
+    }
+
+
+    public static void saveMessageOnBackground(Context context, MessageBlock block){
+
+        final Context mContext = context;
+        new AsyncTask<MessageBlock,Long,Long>(){
+
+            @Override
+            protected Long doInBackground(MessageBlock... params) {
+
+
+                long result = SharedPrefsHelper.saveMessage(mContext,params[0]);
+                return result;
+            }
+
+
+        }.execute(block);
     }
 
 
