@@ -335,13 +335,7 @@ public class NetworkService extends Service {
                     e.printStackTrace();
                 }
 
-
             }
-
-
-
-
-
 
             return serverResponse;
         }

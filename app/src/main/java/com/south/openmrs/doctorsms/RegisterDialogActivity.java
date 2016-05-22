@@ -2,14 +2,9 @@ package com.south.openmrs.doctorsms;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.RecyclerView;
+import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
-import android.util.LruCache;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -28,10 +23,13 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
-public class LoginActivity extends AppCompatActivity {
+public class RegisterDialogActivity extends AppCompatActivity {
 
     TextView usernameView;
     TextView passwordView;
+    TextView firstnameView;
+    TextView lastnameView;
+
     AutoCompleteTextView serverURlView;
     SharedPreferences sharedPref;
     ArrayList<String> urlChoices;
@@ -40,16 +38,16 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.layout);
+        setContentView(R.layout.register_dialog_layout);
 
-        Button  loginButton = (Button)findViewById(R.id.login_submit);
+        Button loginButton = (Button)findViewById(R.id.register_submit);
         sharedPref = getSharedPreferences(
                 getString(R.string.user_details_prefs), this.MODE_PRIVATE);
 
         urlChoices = new ArrayList<String>(sharedPref.getStringSet("SAVED_URLS",new HashSet<String>()));
         urlAdapter = new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_dropdown_item_1line,urlChoices);
 
-        serverURlView = (AutoCompleteTextView) findViewById(R.id.server_url);
+        serverURlView = (AutoCompleteTextView) findViewById(R.id.register_server_url);
         serverURlView.setThreshold(2);
         serverURlView.setAdapter(urlAdapter);
         loginButton.setOnClickListener(new View.OnClickListener() {
@@ -60,59 +58,31 @@ public class LoginActivity extends AppCompatActivity {
         });
 
 
-        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
-        setSupportActionBar(myToolbar);
-
-    }
-
-
-
-
-
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu){
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.login_menu, menu);
-        return true;
-    }
-
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle item selection
-        switch (item.getItemId()) {
-            case R.id.menu_item_register:
-                showRegisterDialog();
-                return true;
-
-            default:
-                return super.onOptionsItemSelected(item);
-        }
-    }
-
-    public void showRegisterDialog(){
-        Toast.makeText(getApplicationContext(),"Register now",Toast.LENGTH_LONG).show();
-        Intent intent = new Intent(this,RegisterDialogActivity.class);
-        startActivity(intent);
     }
 
     public void networkVerifyCredentials(){
 
-        usernameView = (TextView)findViewById(R.id.username_field);
-        passwordView = (TextView)findViewById(R.id.password_field);
-        //serverURlView = (AutoCompleteTextView) findViewById(R.id.server_url);
+        usernameView = (TextView)findViewById(R.id.register_username_field);
+        passwordView = (TextView)findViewById(R.id.register_password_field);
+        firstnameView = (TextView) findViewById(R.id.register_first_name);
+        lastnameView = (TextView) findViewById(R.id.register_last_name);
 
         String unStr = usernameView.getText().toString();
         String pwStr = passwordView.getText().toString();
+        String firstname = firstnameView.getText().toString();
+        String lastname = lastnameView.getText().toString();
         final String serverUrl = serverURlView.getText().toString();
 
         List<NameValuePair> params = new LinkedList<NameValuePair>();
 
         params.add(new NameValuePair("userName",unStr));
         params.add(new NameValuePair("password",pwStr));
+        params.add(new NameValuePair("firstname",firstname));
+        params.add(new NameValuePair("lastname",lastname));
+
+
         //"http://10.0.0.16:8080/openmrsMessage/login"
-        final String urlResource = "/openmrsMessage/login";
+        final String urlResource = "/openmrsMessage/register";
         //HttpPost post = new HttpPost(this, url);
         //post.execute(params);
 
@@ -123,7 +93,7 @@ public class LoginActivity extends AppCompatActivity {
                     System.out.println(response);
                     JSONObject loginResult = null;
                     try{
-                         loginResult = new JSONObject(response);
+                        loginResult = new JSONObject(response);
 
 
                         String loginStatus = loginResult.getString("status");
@@ -184,10 +154,6 @@ public class LoginActivity extends AppCompatActivity {
         };
         mPost.execute(params);
 
-
-    }
-
-    public void startContactsActivity(String networkResponse){
 
     }
 

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_gravity="center">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:text="Register"
+        android:textAlignment="center"
+        android:textSize="42dp"
+        android:textStyle="bold"
+        android:id="@+id/register_title"/>
+
+    <AutoCompleteTextView
+        android:id="@+id/register_server_url"
+        android:hint="Server url"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/register_title"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:ems="10"/>
+
+    <EditText
+        android:id="@+id/register_first_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="first name"
+        android:layout_centerVertical="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_below="@id/register_server_url"/>
+
+    <EditText
+        android:id="@+id/register_last_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="last name"
+        android:layout_centerVertical="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_below="@id/register_first_name"/>
+
+
+    <EditText
+        android:id="@+id/register_username_field"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="username"
+        android:layout_below="@id/register_last_name"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+    <EditText
+        android:id="@+id/register_password_field"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="password"
+        android:layout_centerVertical="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_below="@id/register_username_field"/>
+
+
+    <Button
+        android:id="@+id/register_submit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="submit"
+        android:layout_below="@id/register_password_field"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
+
+
+
+</RelativeLayout>

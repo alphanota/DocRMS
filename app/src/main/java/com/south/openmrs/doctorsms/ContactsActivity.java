@@ -1,5 +1,6 @@
 package com.south.openmrs.doctorsms;
 
+import android.app.Dialog;
 import android.content.ClipData;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -12,12 +13,19 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.util.LruCache;
 import android.view.DragEvent;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -81,10 +89,40 @@ public class ContactsActivity extends AppCompatActivity {
         long userIdLong = Long.parseLong(userIdStr);
 
         mCurrentUser = new User(userIdLong,storedFirstName,storedLastname,storedUsername,storedUserToken);
-
+        Toolbar myToolbar = (Toolbar) findViewById(R.id.contact_toolbar);
+        setSupportActionBar(myToolbar);
 
         init(null);
 
+
+    }
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu){
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.contact_menu, menu);
+        return true;
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.menu_item_add_contact:
+                showAddContactDialog();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    public void showAddContactDialog(){
+
+            AddContactDialog addContactDialog = new AddContactDialog(getApplicationContext());
+            addContactDialog.show();
 
     }
 
@@ -266,6 +304,136 @@ public class ContactsActivity extends AppCompatActivity {
             }
         };
         mPost.execute(params);
+    }
+
+
+
+
+
+
+
+
+    public class AddContactDialog extends Dialog {
+
+        TextView scoreView;
+        Button submitButton;
+       AddContactDialog(final Context context){
+           super(context);
+
+           requestWindowFeature(Window.FEATURE_NO_TITLE);
+           setContentView(R.layout.add_contact_layout);
+
+           scoreView = (TextView) findViewById(R.id.add_contact_friend_id);
+
+
+
+
+
+           submitButton = (Button) findViewById(R.id.add_contact_friend_submit);
+           submitButton.setOnClickListener(new View.OnClickListener(){
+
+
+               @Override
+               public void onClick(View view){
+
+                   String friendIdStr = submitButton.getText().toString();
+                   try {
+                       long userId = Long.parseLong(friendIdStr);
+
+                       getFriend(userId);
+
+                   } catch (NumberFormatException e){
+                       Toast.makeText(context,"Not a number!",Toast.LENGTH_SHORT).show();
+                   }
+
+
+
+
+
+                   dismiss();
+               }
+           });
+
+       }
+
+
+
+    }
+
+
+
+
+    protected void getFriend( long fid ){
+
+
+        Intent intent = this.getIntent();
+        String serverUrl = intent.getStringExtra("serverurl");
+
+
+        JSONObject responseJSON;
+
+        List<NameValuePair> params = new LinkedList<NameValuePair>();
+        String authToken;
+        String userid;
+
+        try{
+
+            responseJSON = new JSONObject(
+                    intent.getStringExtra("networkresponse")
+            );
+
+            authToken = responseJSON.getString("authtoken");
+            userid =  responseJSON.getString("userid");
+
+        } catch (JSONException e){
+
+            return;
+
+        }
+
+        params.add(new NameValuePair("userid",userid));
+        params.add(new NameValuePair("fid", ""+fid) );
+        params.add(new NameValuePair("auth",authToken));
+
+        //"http://ip:port/openmrsMessage/Contacts?userid=1234&auth=sfKxjfdsdkfj2"
+        String urlResource = "/openmrsMessage/addContact";
+
+        System.out.println("ContactsActivity: " + serverUrl+urlResource);
+        HttpPost mPost = new HttpPost(this,serverUrl,urlResource){
+            @Override
+            protected void onPostExecute(String response) {
+                if (response != null) {
+                    System.out.println(response);
+                    JSONObject loginResult = null;
+                    try{
+                        JSONArray jAry = new JSONArray(response);
+
+
+
+                        ArrayList<ContactItem> items = parseContacts(jAry);
+
+                        postList.addAll(items);
+                        mAdapter.notifyDataSetChanged();
+
+
+
+                    } catch (JSONException e){
+                        e.printStackTrace();
+                    }
+
+
+
+                }
+            }
+        };
+        mPost.execute(params);
+
+
+
+
+
+
+
     }
 
 
