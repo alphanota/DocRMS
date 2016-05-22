@@ -121,7 +121,7 @@ public class ContactsActivity extends AppCompatActivity {
 
     public void showAddContactDialog(){
 
-            AddContactDialog addContactDialog = new AddContactDialog(getApplicationContext());
+            AddContactDialog addContactDialog = new AddContactDialog(this);
             addContactDialog.show();
 
     }
@@ -336,7 +336,7 @@ public class ContactsActivity extends AppCompatActivity {
                @Override
                public void onClick(View view){
 
-                   String friendIdStr = submitButton.getText().toString();
+                   String friendIdStr = scoreView.getText().toString();
                    try {
                        long userId = Long.parseLong(friendIdStr);
 
