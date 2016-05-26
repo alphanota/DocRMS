@@ -234,7 +234,6 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.genericViewHolder>
 
     public static class ContactViewHolder extends genericViewHolder{
         TextView contactName;
-        ImageView contactPicture;
         private int mPositionReference;
         ArrayList<Item> mDataSet;
 
@@ -242,7 +241,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.genericViewHolder>
 
             super(v);
             contactName = (TextView) v.findViewById(R.id.contact_name);
-            contactPicture = (ImageView) v.findViewById(R.id.contact_image);
+
 
 
             v.setOnClickListener(new View.OnClickListener() {
@@ -394,7 +393,6 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.genericViewHolder>
                 ((ContactViewHolder)holder).contactName.setText(contact.mContactName );
                 ((ContactViewHolder)holder).setPositionReference(position);
                 //((ContactViewHolder)holder).title.setText(mesg.username);
-                ((ContactViewHolder)holder).contactPicture.setImageResource(R.mipmap.ic_launcher);
                 //((ContactViewHolder)holder).contactPicture.setClipToOutline(true);
                 break;
 

@@ -58,8 +58,6 @@ public class SharedPrefsHelper {
 
 
     }
-
-
     public static void saveMessageOnBackground(Context context, MessageBlock block){
 
         final Context mContext = context;
@@ -76,6 +74,7 @@ public class SharedPrefsHelper {
 
         }.execute(block);
     }
+
 
 
 }

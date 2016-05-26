@@ -72,8 +72,8 @@ public class HttpPost extends AsyncTask<List<NameValuePair>, Integer, String>{
             serverResponse = in.readLine();
 
             System.out.println("Reponsecode = "+responseCode);
-            System.out.println(urlParameters);
-            System.out.println(serverResponse);
+            //System.out.println(urlParameters);
+            //System.out.println(serverResponse);
 
         } catch (MalformedURLException malUrl) {
             malUrl.printStackTrace();

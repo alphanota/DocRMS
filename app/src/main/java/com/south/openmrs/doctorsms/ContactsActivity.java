@@ -1,6 +1,7 @@
 package com.south.openmrs.doctorsms;
 
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.ClipData;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -28,10 +29,17 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.util.Base64;
+
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.security.Key;
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,12 +51,15 @@ public class ContactsActivity extends AppCompatActivity {
     Context context;
     private LruCache<String, Bitmap> mMemoryCache;
     View containerView;
+    ProgressDialog addFrienddialog;
 
     User mCurrentUser;
 
     private RecyclerView mRecyclerView;
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
+
+    
 
 
     @Override
@@ -91,6 +102,7 @@ public class ContactsActivity extends AppCompatActivity {
         mCurrentUser = new User(userIdLong,storedFirstName,storedLastname,storedUsername,storedUserToken);
         Toolbar myToolbar = (Toolbar) findViewById(R.id.contact_toolbar);
         setSupportActionBar(myToolbar);
+        //setActionBar(myToolbar);
 
         init(null);
 
@@ -112,6 +124,10 @@ public class ContactsActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             case R.id.menu_item_add_contact:
                 showAddContactDialog();
+                return true;
+
+            case R.id.menu_item_logout:
+
                 return true;
 
             default:
@@ -338,9 +354,16 @@ public class ContactsActivity extends AppCompatActivity {
 
                    String friendIdStr = scoreView.getText().toString();
                    try {
-                       long userId = Long.parseLong(friendIdStr);
+                       final long userId = Long.parseLong(friendIdStr);
+                        addFrienddialog = new ProgressDialog(context,ProgressDialog.STYLE_SPINNER);
+                       addFrienddialog.show();
+                       new Thread(){
 
-                       getFriend(userId);
+                           @Override
+                           public void run(){
+                               InitiatorFriendRequest(userId);
+                           }
+                       }.start();
 
                    } catch (NumberFormatException e){
                        Toast.makeText(context,"Not a number!",Toast.LENGTH_SHORT).show();
@@ -363,18 +386,45 @@ public class ContactsActivity extends AppCompatActivity {
 
 
 
-    protected void getFriend( long fid ){
+    protected void InitiatorFriendRequest( long fid ){
+
 
 
         Intent intent = this.getIntent();
         String serverUrl = intent.getStringExtra("serverurl");
 
 
-        JSONObject responseJSON;
 
         List<NameValuePair> params = new LinkedList<NameValuePair>();
         String authToken;
-        String userid;
+        long userid;
+
+
+        // generate new rsa key pair
+        KeyPair initiator_key = RSAKeyPair.genRSAKeyPair();
+
+        PrivateKey priv = initiator_key.getPrivate();
+        PublicKey pub = initiator_key.getPublic();
+
+
+
+        String privateKeyEncoded = Base64.encodeToString(priv.getEncoded(),Base64.URL_SAFE);
+        String publicKeyEncoded = Base64.encodeToString(pub.getEncoded(),Base64.URL_SAFE);
+
+
+
+        KeyPair initiator_dh_key = RSAKeyPair.generateDHKey();
+
+        initiator_dh_key.getPrivate().getEncoded();
+        String dh_pub = Base64.encodeToString(initiator_dh_key.getPublic().getEncoded(),Base64.URL_SAFE);
+        String dh_priv = Base64.encodeToString(initiator_dh_key.getPrivate().getEncoded(),Base64.URL_SAFE);
+
+        String dhPubKeyEncoded = "";
+
+        JSONObject responseJSON;
+        JSONObject initiator_dh_rsa_pub_key_JSON;
+
+        String intiator_pubk_info = "";
 
         try{
 
@@ -383,7 +433,20 @@ public class ContactsActivity extends AppCompatActivity {
             );
 
             authToken = responseJSON.getString("authtoken");
-            userid =  responseJSON.getString("userid");
+            userid =  responseJSON.getLong("userid");
+
+
+            initiator_dh_rsa_pub_key_JSON = new JSONObject();
+
+            initiator_dh_rsa_pub_key_JSON.put("rsa_pub_key",publicKeyEncoded);
+            initiator_dh_rsa_pub_key_JSON.put("dh_pub_key",dh_pub);
+            initiator_dh_rsa_pub_key_JSON.put("initiator_id",userid);
+            initiator_dh_rsa_pub_key_JSON.put("rec_id",fid);
+            initiator_dh_rsa_pub_key_JSON.put("action","request");
+
+            intiator_pubk_info = initiator_dh_rsa_pub_key_JSON.toString();
+
+
 
         } catch (JSONException e){
 
@@ -391,9 +454,25 @@ public class ContactsActivity extends AppCompatActivity {
 
         }
 
-        params.add(new NameValuePair("userid",userid));
+
+
+        /// save my public and private key in database
+        RSAKeyPair.saveKeyPair(context,userid,fid,privateKeyEncoded,publicKeyEncoded);
+
+
+        //
+        RSAKeyPair.saveDHKeyPair(context,userid,fid,dh_pub,dh_priv);
+
+
+
+
+
+
+
+        params.add(new NameValuePair("userid",""+userid));
         params.add(new NameValuePair("fid", ""+fid) );
         params.add(new NameValuePair("auth",authToken));
+        params.add(new NameValuePair("initiator_pub_key",intiator_pubk_info));
 
         //"http://ip:port/openmrsMessage/Contacts?userid=1234&auth=sfKxjfdsdkfj2"
         String urlResource = "/openmrsMessage/addContact";
@@ -404,32 +483,16 @@ public class ContactsActivity extends AppCompatActivity {
             protected void onPostExecute(String response) {
                 if (response != null) {
                     System.out.println(response);
-                    JSONObject loginResult = null;
-                    try{
-                        JSONArray jAry = new JSONArray(response);
 
-
-
-                        ArrayList<ContactItem> items = parseContacts(jAry);
-
-                        postList.addAll(items);
-                        mAdapter.notifyDataSetChanged();
-
-
-
-                    } catch (JSONException e){
-                        e.printStackTrace();
+                    if (addFrienddialog.isShowing()){
+                        addFrienddialog.dismiss();
                     }
-
 
 
                 }
             }
         };
         mPost.execute(params);
-
-
-
 
 
 

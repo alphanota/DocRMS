@@ -1,11 +1,25 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:id = "@+id/main_layout"
-    android:orientation = "vertical"
-    android:background="#35302C" >
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main_layout"
+    android:orientation="vertical"
+    android:background="#35302C">
 
 
+
+
+
+
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/chat_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/openrms_teal"
+        android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+        android:elevation="4dp"
+        android:layout_alignParentTop="true"/>
 
 
 
@@ -44,7 +58,8 @@
         android:paddingRight="10dp"
         android:transcriptMode="alwaysScroll"
         android:background="#32322C"
-        android:layout_above="@id/chat_linear_layout_1"/>
+        android:layout_above="@id/chat_linear_layout_1"
+        android:layout_below="@id/chat_toolbar"/>
 
 
 

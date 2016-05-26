@@ -14,12 +14,15 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Base64;
 import android.util.LruCache;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
+
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -242,17 +245,53 @@ public class ChatActivity extends AppCompatActivity {
                 "http://localhost:8080");
 
 
+
+        String aes_key = RSAKeyPair.getAESKey(getApplicationContext(),mCurrentUser.getId(), mRemoteContact.getId());
+
+        byte[] msgBytes = message.getBytes();
+
+        SecureRandom rand = new SecureRandom();
+
+        byte[] ivBytes = new byte[16];
+
+        rand.nextBytes(ivBytes);
+
+        byte[] aesKeyBytes = Base64.decode(aes_key,Base64.URL_SAFE);
+
+        String encMsg = "send error";
+        try {
+
+            byte[] enc = RSAKeyPair.AESencrypt(message,aesKeyBytes,ivBytes);
+            encMsg = Base64.encodeToString(enc,Base64.URL_SAFE);
+
+        }  catch (Exception e){
+
+        }
+
+
+
+        String iv_str = Base64.encodeToString(ivBytes,Base64.URL_SAFE);
+
         List<NameValuePair> params = new LinkedList<NameValuePair>();
+
         //example query:
         //http://localhost:8080/openmrsMessage/sendMessage?
         // sid=23948234&
         // rid=10920934&
         // msg=hello+world+lol&
         // auth=dontcare
+
+
+
+
+
+        params.add(new NameValuePair("action","message"));
         params.add(new NameValuePair("sid",""+mCurrentUser.getId()));
         params.add(new NameValuePair("rid",""+mRemoteContact.getId()));
-        params.add(new NameValuePair("msg",message));
+        params.add(new NameValuePair("msg",encMsg));
         params.add(new NameValuePair("auth",mCurrentUser.getAuth()));
+        params.add(new NameValuePair("iv",iv_str));
+
         //"http://10.0.0.16:8080/openmrsMessage/login"
         String urlResource = "/openmrsMessage/sendMessage";
 
