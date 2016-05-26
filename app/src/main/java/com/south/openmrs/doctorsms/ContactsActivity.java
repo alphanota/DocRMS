@@ -59,7 +59,7 @@ public class ContactsActivity extends AppCompatActivity {
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
 
-    
+
 
 
     @Override
