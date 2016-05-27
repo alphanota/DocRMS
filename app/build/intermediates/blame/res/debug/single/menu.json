@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "/home/angel/AndroidStudioProjects/DoctorSMS/app/build/intermediates/res/merged/debug/menu/chat_menu.xml",
+        "source": "/home/angel/AndroidStudioProjects/DoctorSMS/app/src/main/res/menu/chat_menu.xml"
+    },
+    {
+        "merged": "/home/angel/AndroidStudioProjects/DoctorSMS/app/build/intermediates/res/merged/debug/menu/contact_menu.xml",
+        "source": "/home/angel/AndroidStudioProjects/DoctorSMS/app/src/main/res/menu/contact_menu.xml"
+    },
+    {
+        "merged": "/home/angel/AndroidStudioProjects/DoctorSMS/app/build/intermediates/res/merged/debug/menu/login_menu.xml",
+        "source": "/home/angel/AndroidStudioProjects/DoctorSMS/app/src/main/res/menu/login_menu.xml"
+    }
+]

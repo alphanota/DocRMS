@@ -1,11 +1,19 @@
 package com.south.openmrs.doctorsms;
 
+import android.annotation.TargetApi;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.app.TaskStackBuilder;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
-import android.os.SystemClock;
+import android.support.v7.app.NotificationCompat;
 import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
@@ -23,7 +31,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
-import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -38,8 +45,6 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-
 import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
 import javax.crypto.interfaces.DHPublicKey;
@@ -57,10 +62,16 @@ public class NetworkService extends Service {
     protected boolean keepConnecting = true;
     public final static String NEW_MESSAGE = "com.south.openmrs.doctorsms.service.reciever";
     public final static String NEW_MESSAGES = "com.south.openmrs.doctorsms.service.recievers";
+    public final static String NETWORK_NOTIFICATION = "com.south.openmrs.doctorsms.service.netnotify";
+    public final static String LOG_OUT = "com.south.openmrs.doctorsms.service.logout";
     boolean MaintainConnection = true;
     Hashtable<Long,MessageBlock> messages;
     protected static final String FAIL_RESPONSE = "No post parameters";
+    public static final String CONTACT_LIST = "com.south.openmrs.doctorsms.service.contacts";
+    public static final String CHAT_VISIBILITY = "com.south.openmrs.doctorsms.service.visible";
 
+
+    Hashtable<Long,ContactItem> contactsTable;
 
     public NetworkService() {
 
@@ -73,23 +84,24 @@ public class NetworkService extends Service {
         }
     }
 
-
     @Override
     public void onCreate() {
         // The service is being created
-
         messages = new Hashtable<Long,MessageBlock> ();
         try{
             mServiceUser = SharedPrefsHelper.loadUserDataFromPrefs(getApplicationContext());
         } catch (Exception e){
             Log.d("onStartCommand: ",e.getLocalizedMessage(),e);
-        }
+        }//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-^=_-^-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
         String urlResource = "/openmrsMessage/GetMessage";
         new DataRequestThread(urlResource).start();
         //TODO: Implement additional methods if necessary
+        contactsTable = new Hashtable<Long,ContactItem>();
+        registerReceiver(logout_receiver, new IntentFilter(NetworkService.LOG_OUT));
+        registerReceiver(contact_receiver, new IntentFilter(NetworkService.CONTACT_LIST));
+        registerReceiver(visibility_receiver, new IntentFilter(NetworkService.CHAT_VISIBILITY));
+
     }
-
-
 
     private void processResponse(String networkResponse){
 
@@ -137,16 +149,12 @@ public class NetworkService extends Service {
                 else deliverMessage(jResponse);
 
             }
-
-
-
-
         }  catch(JSONException e){
 
+        } catch (NullPointerException e){
+            Log.d("NetworkService",e.getMessage());
         }
     }
-
-
     private void onFriendRequest(JSONObject initiator_dh_rsa_pub_key_JSON){
 
 
@@ -303,7 +311,10 @@ public class NetworkService extends Service {
 
 
 
+          Intent intent = new Intent(this.NETWORK_NOTIFICATION);
+          sendBroadcast(intent);
 
+          createNotification(I_id,"Friend Request","Friend request from:"+I_id,ContactItem.class);
 
 
           //=====================================================
@@ -325,13 +336,6 @@ public class NetworkService extends Service {
 
 
     }
-
-
-
-
-
-
-
 
     private void onFriendReplyRequest(JSONObject receiver_dh_rsa_pub_key_JSON){
 
@@ -401,6 +405,13 @@ public class NetworkService extends Service {
             RSAKeyPair.saveAESKey(getApplicationContext(),mServiceUser.getId(),R_id,aes_string);
 
 
+
+            Intent intent = new Intent(this.NETWORK_NOTIFICATION);
+            sendBroadcast(intent);
+
+            createNotification(R_id,"Friend Request Accepted","Friend accepted from:"+R_id,ContactItem.class);
+
+
         } catch (JSONException e){
             e.printStackTrace();
         } catch (InvalidKeyException e) {
@@ -418,11 +429,78 @@ public class NetworkService extends Service {
 
 
 
+    public void sendItems(ArrayList<ContactItem> items){
+
+            for( ContactItem cItem: items){
+
+                cItem.setVisible(false);
+                contactsTable.put(cItem.getId(),cItem);
+
+            }
+
+        Toast.makeText(getApplicationContext(),"Got "+ items.size() + " items",Toast.LENGTH_LONG).show();
+
+
+    }
+
+    public void sendChatVisibility(ContactItem mRemoteContact,boolean visibility){
+
+        ContactItem contact = contactsTable.get(mRemoteContact.getId());
+        if(contact != null){
+            contact.setVisible(visibility);
+            contactsTable.put(contact.getId(),contact);
+        }
+
+
+
+    }
 
 
 
 
 
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    private void createNotification(long senderid, String title, String text, Class <?> cls){
+        ContactItem contact = contactsTable.get(senderid);
+
+
+        android.support.v4.app.NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(this)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setContentTitle(title)
+                        .setContentText(text);
+        // Creates an explicit intent for an Activity in your app
+
+        Intent resultIntent = new Intent(this, cls);
+        if (contact != null) resultIntent.putExtra("ContactName",contact);
+
+        // The stack builder object will contain an artificial back stack for the
+        // started Activity.
+        // This ensures that navigating backward from the Activity leads out of
+        // your application to the Home screen.
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        // Adds the back stack for the Intent (but not the Intent itself)
+        stackBuilder.addParentStack(ChatActivity.class);
+        // Adds the Intent that starts the Activity to the top of the stack
+        stackBuilder.addNextIntent(resultIntent);
+        PendingIntent resultPendingIntent =
+                stackBuilder.getPendingIntent(
+                        0,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                );
+        mBuilder.setContentIntent(resultPendingIntent);
+        NotificationManager mNotificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+//              mId allows you to update the notification later on.
+        mNotificationManager.notify(3, mBuilder.build());
+
+
+
+
+
+
+    }
 
 
 
@@ -471,13 +549,18 @@ public class NetworkService extends Service {
 
                 SharedPrefsHelper.saveMessageOnBackground(getApplicationContext(),msgBlock);
 
-
-
-
-
                 Intent intent = new Intent(this.NEW_MESSAGE);
                 intent.putExtra("message",msgBlock);
                 sendBroadcast(intent);
+
+                ContactItem item = contactsTable.get(sid);
+                if(item != null){
+                    item.getUn();
+                    if (!item.isVisible()){
+                        createNotification(sid,item.getUn(),"New message from " + item.getUn(),ChatActivity.class);
+                    }
+
+                }
 
             }
             catch (JSONException e){
@@ -517,9 +600,6 @@ public class NetworkService extends Service {
           in... broadcast error code
 
          */
-
-
-
         // update userinfo... especially remote server URL
 
         try{
@@ -528,55 +608,64 @@ public class NetworkService extends Service {
             Log.d("onStartCommand: ",e.getLocalizedMessage(),e);
         }
 
-
-
-
-
-            long id = intent.getLongExtra("senderid",0L);
+            long id = mServiceUser.getId();
 
 
 
         MessageBlock block = messages.get(id);
+        //---------------------------//
         if (block != null){
-
                 Intent rIntent = new Intent(this.NEW_MESSAGES);
                 rIntent.putExtra("messages",block);
                 sendBroadcast(rIntent);
+        }
+        mCount++;
 
+
+        try{
+            ContactItem item = (ContactItem)intent.getExtras().getSerializable("ContactName");
+            if (item !=  null){
+
+                ContactItem cItem = contactsTable.get(item.getId());
+                if(cItem != null){
+                    cItem.setVisible(true);
+                    contactsTable.put(cItem.getId(),cItem);
+                }
+
+
+            }
+        } catch (Exception e){
 
         }
 
-        mCount++;
         return mBinder;
     }
     @Override
     public boolean onUnbind(Intent intent) {
+
         // All clients have unbound with unbindService()
         mCount--;
-        return mAllowRebind;
+
+        return true;
     }
     @Override
     public void onRebind(Intent intent) {
         // A client is binding to the service with bindService(),
         // after onUnbind() has already been called
-
         // do samething as onBind
+        onBind(intent);
     }
     @Override
     public void onDestroy() {
         // The service is no longer used and is being destroyed
-
         //make sure connections are closed
         // set loop conditions to false
         MaintainConnection = false;
+        unregisterReceiver(logout_receiver);
+
+        unregisterReceiver(contact_receiver);
+        unregisterReceiver(visibility_receiver);
     }
-
-
-
-
-
-
-
 
     private class DataRequestThread extends Thread {
 
@@ -688,16 +777,131 @@ public class NetworkService extends Service {
 
             return serverResponse;
         }
+
+
+
+
+    }
+
+    public void onLogOut(Intent intent){
+        SharedPreferences sharedPref =
+                getSharedPreferences(
+                        getString(R.string.user_details_prefs), MODE_PRIVATE
+                );
+
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.clear();
+        editor.commit();
+
+        MaintainConnection = false;
+        stopSelf();
     }
 
     public void connect(Intent intent){
 
     }
 
+    private BroadcastReceiver logout_receiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+           onLogOut(null);
+        }
+    };
+
+    private BroadcastReceiver contact_receiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            String  contacts = intent.getExtras().getString("ContactName");
+
+            try {
+                JSONArray jary = new JSONArray(contacts);
+                ArrayList<ContactItem> t = parseContacts(jary);
+                sendItems(t);
+            } catch(JSONException e){
+
+            }
+
+        }
+    };
+
+    private BroadcastReceiver visibility_receiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            long sid = intent.getExtras().getLong("fid");
+            boolean isVisible = intent.getBooleanExtra("visibility",false);
+
+            ContactItem cItem = contactsTable.get(sid);
+            if (cItem != null){
+                cItem.setVisible(isVisible);
+                contactsTable.put(sid,cItem);
+            }
+
+        }
+    };
 
 
 
 
 
+    public  ContactItem parseContact(JSONObject jObj){
+        // format of json object
+        //{"username":"hp7books","userid":23948234,"lastname":"Potter","firstname":"Harry"}
+
+        try{
+
+            String username = jObj.getString("username");
+            String userId = jObj.getString("userid");
+            String lastname = jObj.getString("lastname");
+            String firstname = jObj.getString("firstname");
+
+            ContactItem item = new ContactItem(
+                    null,
+                    username,
+                    userId,
+                    lastname,
+                    firstname
+
+            );
+
+            return item;
+
+        } catch (JSONException e){
+            return null;
+        }
+
+
+
+    }
+
+    public ArrayList<ContactItem> parseContacts(JSONArray jAry){
+
+        System.out.println(jAry.toString());
+
+        ArrayList<ContactItem> cItems = new ArrayList<ContactItem>();
+        int jAryLength =jAry.length();
+
+        for(int i =0; i < jAryLength; i++){
+
+            try{
+                JSONObject jObj = jAry.getJSONObject(i);
+
+                ContactItem cItem = parseContact(jObj);
+                if(cItem != null){
+                    cItems.add(cItem);
+                }
+
+            } catch (JSONException e){
+
+            }
+
+        }
+
+        return cItems;
+    }
 
 }

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="300dp"
+    android:layout_height="match_parent"
+   >
+<LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="30dp"
+        android:layout_marginRight="30dp"
+        android:orientation="vertical">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:text="Add Friend"
+        android:textAlignment="center"
+        android:textSize="42dp"
+        android:textStyle="bold"
+        android:layout_marginTop="15dp"
+        android:id="@+id/add_contact_title"/>
+
+
+    <EditText
+        android:id="@+id/add_contact_friend_id"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter friend's id number"
+        android:layout_centerVertical="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"/>
+
+    <Button
+        android:id="@+id/add_contact_friend_submit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="submit"
+        android:layout_gravity="center_horizontal"/>
+
+
+
+
+
+
+
+
+
+
+</LinearLayout>
+</LinearLayout>

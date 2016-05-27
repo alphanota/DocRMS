@@ -2,14 +2,20 @@ package com.south.openmrs.doctorsms;
 
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
 import android.content.ClipData;
+import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.IBinder;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -26,6 +32,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -38,6 +45,8 @@ import org.json.JSONObject;
 
 import java.security.Key;
 import java.security.KeyPair;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
@@ -58,6 +67,13 @@ public class ContactsActivity extends AppCompatActivity {
     private RecyclerView mRecyclerView;
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
+
+
+    Intent serviceIntent;
+
+    NetworkService mService;
+    boolean mBound = false;
+
 
 
 
@@ -86,11 +102,8 @@ public class ContactsActivity extends AppCompatActivity {
 
         };
 
-
         SharedPreferences sharedPref = getSharedPreferences(
                 getString(R.string.user_details_prefs), MODE_PRIVATE);
-
-
         String storedUserToken =sharedPref.getString(getString(R.string.stored_user_token),"0");
         String storedUsername = sharedPref.getString(getString(R.string.stored_username),"0");
         String userIdStr =      sharedPref.getString(getString(R.string.stored_user_userid), "0");
@@ -103,11 +116,67 @@ public class ContactsActivity extends AppCompatActivity {
         Toolbar myToolbar = (Toolbar) findViewById(R.id.contact_toolbar);
         setSupportActionBar(myToolbar);
         //setActionBar(myToolbar);
-
         init(null);
 
 
+        // hello
+        //serviceIntent = new Intent(this, NetworkService.class);
+        //startService(serviceIntent);
+        //bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE);
     }
+
+
+    @Override
+    protected void onPause() {
+        this.unregisterReceiver(lreceiver);
+        unbindService(mConnection);
+        super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(lreceiver, new IntentFilter(NetworkService.NETWORK_NOTIFICATION));
+            serviceIntent = new Intent(this, NetworkService.class);
+            bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE);
+
+
+        networkGetContacts();
+    }
+
+    private BroadcastReceiver lreceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            //System.out.println("Loginreciever caught ");
+            postList.clear();
+            networkGetContacts();
+
+        } //overr. onReceive
+    }; //new broadcast
+
+
+    /** Defines callbacks for service binding, passed to bindService() */
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            NetworkService.NetworkBinder binder = (NetworkService.NetworkBinder) service;
+            mService = binder.getService();
+            mBound = true;
+
+
+            mService.connect(serviceIntent);
+
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
 
 
     @Override
@@ -127,7 +196,16 @@ public class ContactsActivity extends AppCompatActivity {
                 return true;
 
             case R.id.menu_item_logout:
+                sendBroadcast(new Intent(NetworkService.LOG_OUT));
+                Intent intent = new Intent(this,LoginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
 
+                return true;
+
+            case R.id.menu_item_user_info:
+                UserInfoDialog infoDialog = new UserInfoDialog(this,mCurrentUser);
+                infoDialog.show();
                 return true;
 
             default:
@@ -169,7 +247,7 @@ public class ContactsActivity extends AppCompatActivity {
         mAdapter = new MyAdapter(postList, context, mMemoryCache);
         mRecyclerView.setAdapter(mAdapter);
 
-        networkGetContacts();
+
 
     }
 
@@ -193,7 +271,7 @@ public class ContactsActivity extends AppCompatActivity {
     }
 
 
-    ContactItem parseContact(JSONObject jObj){
+    public  ContactItem parseContact(JSONObject jObj){
         // format of json object
         //{"username":"hp7books","userid":23948234,"lastname":"Potter","firstname":"Harry"}
 
@@ -224,8 +302,7 @@ public class ContactsActivity extends AppCompatActivity {
 
     }
 
-
-    ArrayList<ContactItem> parseContacts(JSONArray jAry){
+    public  ArrayList<ContactItem> parseContacts(JSONArray jAry){
 
         System.out.println(jAry.toString());
 
@@ -305,6 +382,14 @@ public class ContactsActivity extends AppCompatActivity {
 
                         ArrayList<ContactItem> items = parseContacts(jAry);
 
+                        Intent intent = new Intent(NetworkService.CONTACT_LIST);
+                        intent.putExtra("ContactName",response);
+                        sendBroadcast(intent);
+                        //Intent intent = new Intent(NetworkService.GET_CONTACTS);
+
+                        if (mService != null){
+                            mService.sendItems(items);
+                        }
                         postList.addAll(items);
                         mAdapter.notifyDataSetChanged();
 
@@ -379,12 +464,43 @@ public class ContactsActivity extends AppCompatActivity {
 
        }
 
-
-
     }
 
 
+    public class FriendRequestResultDialog extends Dialog {
 
+        TextView dhKey;
+        TextView rsaKey;
+        Button okButton;
+
+        FriendRequestResultDialog(final Context context,String dKey, String rKey){
+            super(context);
+
+            setTitle("Friend request sent!");
+            setContentView(R.layout.friend_request_key_info);
+
+            dhKey = (TextView) findViewById(R.id.dh_key_info);
+
+            rsaKey = (TextView) findViewById(R.id.rsa_key_info);
+
+
+            dhKey.setText(dKey);
+            rsaKey.setText(rKey);
+
+            okButton = (Button) findViewById(R.id.friend_req_info_dismiss);
+            okButton.setOnClickListener(new View.OnClickListener(){
+
+
+                @Override
+                public void onClick(View view){
+
+                    dismiss();
+                }
+            });
+
+        }
+
+    }
 
     protected void InitiatorFriendRequest( long fid ){
 
@@ -403,8 +519,8 @@ public class ContactsActivity extends AppCompatActivity {
         // generate new rsa key pair
         KeyPair initiator_key = RSAKeyPair.genRSAKeyPair();
 
-        PrivateKey priv = initiator_key.getPrivate();
-        PublicKey pub = initiator_key.getPublic();
+        final PrivateKey priv = initiator_key.getPrivate();
+        final PublicKey pub = initiator_key.getPublic();
 
 
 
@@ -413,7 +529,7 @@ public class ContactsActivity extends AppCompatActivity {
 
 
 
-        KeyPair initiator_dh_key = RSAKeyPair.generateDHKey();
+        final KeyPair initiator_dh_key = RSAKeyPair.generateDHKey();
 
         initiator_dh_key.getPrivate().getEncoded();
         String dh_pub = Base64.encodeToString(initiator_dh_key.getPublic().getEncoded(),Base64.URL_SAFE);
@@ -454,20 +570,11 @@ public class ContactsActivity extends AppCompatActivity {
 
         }
 
-
-
         /// save my public and private key in database
         RSAKeyPair.saveKeyPair(context,userid,fid,privateKeyEncoded,publicKeyEncoded);
 
-
         //
         RSAKeyPair.saveDHKeyPair(context,userid,fid,dh_pub,dh_priv);
-
-
-
-
-
-
 
         params.add(new NameValuePair("userid",""+userid));
         params.add(new NameValuePair("fid", ""+fid) );
@@ -488,6 +595,23 @@ public class ContactsActivity extends AppCompatActivity {
                         addFrienddialog.dismiss();
                     }
 
+                    try {
+                        MessageDigest hashDigest = MessageDigest.getInstance("SHA-256");
+                        byte[] rsa_pub_fingerprint = hashDigest.digest(pub.getEncoded());
+                        hashDigest.reset();
+                        byte[] dh_pub_fingerprint = hashDigest.digest(initiator_dh_key.getPublic().getEncoded());
+
+
+                        FriendRequestResultDialog frDialog= new FriendRequestResultDialog(context,RSAKeyPair.fingerPrintFormat(dh_pub_fingerprint),
+                                RSAKeyPair.fingerPrintFormat(rsa_pub_fingerprint));
+
+                        frDialog.show();
+
+
+                    }
+                    catch(NoSuchAlgorithmException e ){
+
+                    }
 
                 }
             }

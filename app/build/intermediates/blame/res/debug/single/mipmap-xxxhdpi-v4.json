@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "/home/angel/AndroidStudioProjects/DoctorSMS/app/build/intermediates/res/merged/debug/mipmap-xxxhdpi-v4/ic_launcher.png",
+        "source": "/home/angel/AndroidStudioProjects/DoctorSMS/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "/home/angel/AndroidStudioProjects/DoctorSMS/app/build/intermediates/res/merged/debug/mipmap-xxxhdpi-v4/blank_square.png",
+        "source": "/home/angel/AndroidStudioProjects/DoctorSMS/app/src/main/res/mipmap-xxxhdpi/blank_square.png"
+    },
+    {
+        "merged": "/home/angel/AndroidStudioProjects/DoctorSMS/app/build/intermediates/res/merged/debug/mipmap-xxxhdpi-v4/ic_person_add_black_24dp.png",
+        "source": "/home/angel/AndroidStudioProjects/DoctorSMS/app/src/main/res/mipmap-xxxhdpi/ic_person_add_black_24dp.png"
+    },
+    {
+        "merged": "/home/angel/AndroidStudioProjects/DoctorSMS/app/build/intermediates/res/merged/debug/mipmap-xxxhdpi-v4/ic_person_add_white_24dp.png",
+        "source": "/home/angel/AndroidStudioProjects/DoctorSMS/app/src/main/res/mipmap-xxxhdpi/ic_person_add_white_24dp.png"
+    }
+]

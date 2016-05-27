@@ -17,21 +17,21 @@ public class ContactItem extends Item implements Serializable {
     private String mUn;
     private long mId;
 
+
+    private boolean isVisible;
     // format of json object
     //{"username":"hp7books","userid":23948234,"lastname":"Potter","firstname":"Harry"}
     ContactItem(Uri thumb, String un, String uid, String ln, String fn){
-
-
         mId = Long.parseLong(uid);
         mUn = un;
         mLn = ln;
         mFn = fn;
         mContactName = fn + " " + ln;
         mNewMessage =false;
+        isVisible = false;
     }
 
     ContactItem(Uri thumb, Uri orig,String ContactName){
-
         this.mContactName = ContactName;
     }
 
@@ -41,6 +41,15 @@ public class ContactItem extends Item implements Serializable {
 
     public String getUn(){
         return mUn;
+    }
+
+
+    public boolean isVisible(){
+        return  isVisible;
+    }
+
+    public void setVisible(boolean v){
+        isVisible = v;
     }
 
 }

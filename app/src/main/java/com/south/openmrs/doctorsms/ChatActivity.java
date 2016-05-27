@@ -14,8 +14,12 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.Toolbar;
 import android.util.Base64;
 import android.util.LruCache;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
@@ -73,6 +77,7 @@ public class ChatActivity extends AppCompatActivity {
 
         mRemoteContact = (ContactItem) getIntent().getSerializableExtra("ContactName");
 
+
         postList = new ArrayList<Item>();
 
         context =this;
@@ -110,10 +115,100 @@ public class ChatActivity extends AppCompatActivity {
         serviceIntent.putExtra("senderid",mRemoteContact.getId());
         startService(serviceIntent);
         bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE);
+
+
+        Toolbar myToolbar = (Toolbar) findViewById(R.id.chat_toolbar);
+        setSupportActionBar(myToolbar);
+
+
+
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu){
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.chat_menu, menu);
+        return true;
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.chat_menu_conversation_info:
+                //showFriendDialog();
+                Toast.makeText(context,"Not implemented!",Toast.LENGTH_LONG).show();
+                return true;
+
+            case R.id.chat_menu_logout:
+                sendBroadcast(new Intent(NetworkService.LOG_OUT));
+                Intent intent = new Intent(this,LoginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
+
+                return true;
+
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+
+
+    private void showFriendDialog(){
+
+        String myRsaPubKey = RSAKeyPair.getMyRSAPublicKey(context,mCurrentUser.getId(),mRemoteContact.getId());
+        String[] myDhKey = RSAKeyPair.getDHKey(context,mCurrentUser.getId(),mRemoteContact.getId());
+
+
+        String theirDHPubKey = RSAKeyPair.getDHPublicKey(context,mCurrentUser.getId(),mRemoteContact.getId());
+
+        String theirRSAPubKey = RSAKeyPair.getRSAPublicKey(context,mCurrentUser.getId(),mRemoteContact.getId());
+
+
+        byte[] mrsabytes = Base64.decode(myRsaPubKey,Base64.URL_SAFE);
+        byte[] mdhbytes = Base64.decode(myDhKey[0],Base64.URL_SAFE);
+        byte[] tdhkey = Base64.decode(theirDHPubKey,Base64.URL_SAFE);
+        byte[] trsakey = Base64.decode(theirRSAPubKey,Base64.URL_SAFE);
+
+        /*
+         FriendInfoDialog(final Context context, ContactItem friend,
+                     User user,
+                     String friend_dhKey, String friend_rsaKey,
+                     String your_dhKey, String your_rsaKey){
+        super(context);
+         */
+
+        FriendInfoDialog friendInfoDialog = new FriendInfoDialog(context,
+                mRemoteContact,
+                mCurrentUser,
+                RSAKeyPair.fingerPrintFormat(tdhkey),
+                RSAKeyPair.fingerPrintFormat(trsakey),
+                RSAKeyPair.fingerPrintFormat(mrsabytes),
+                RSAKeyPair.fingerPrintFormat(mdhbytes)
+
+
+        );
+        friendInfoDialog.show();
+
+
+
+
+
     }
 
     @Override
     protected void onPause() {
+
+
+        Intent vIntent = new Intent(NetworkService.CHAT_VISIBILITY);
+        vIntent.putExtra("sid",mRemoteContact.getId());
+        vIntent.putExtra("visibility",false);
+
+        sendBroadcast(vIntent);
+
         this.unregisterReceiver(lreceiver);
         this.unregisterReceiver(lreceivers);
         unbindService(mConnection);
@@ -202,8 +297,16 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        //bindService(mConnection);
         registerReceiver(lreceiver, new IntentFilter(NetworkService.NEW_MESSAGE));
         registerReceiver(lreceivers, new IntentFilter(NetworkService.NEW_MESSAGES));
+
+        Intent vIntent = new Intent(NetworkService.CHAT_VISIBILITY);
+        vIntent.putExtra("sid",mRemoteContact.getId());
+        vIntent.putExtra("visibility",true);
+
+        sendBroadcast(vIntent);
+
     }
 
     private void sendMessageToScreen(String message, EditText editText){
@@ -267,9 +370,6 @@ public class ChatActivity extends AppCompatActivity {
         }  catch (Exception e){
 
         }
-
-
-
         String iv_str = Base64.encodeToString(ivBytes,Base64.URL_SAFE);
 
         List<NameValuePair> params = new LinkedList<NameValuePair>();
@@ -280,10 +380,6 @@ public class ChatActivity extends AppCompatActivity {
         // rid=10920934&
         // msg=hello+world+lol&
         // auth=dontcare
-
-
-
-
 
         params.add(new NameValuePair("action","message"));
         params.add(new NameValuePair("sid",""+mCurrentUser.getId()));
@@ -302,11 +398,7 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             protected void onPostExecute(String response) {
                 if (response != null) {
-
-
                     Toast.makeText(parentContext,response,Toast.LENGTH_SHORT).show();
-
-
 
                 }
             }

@@ -361,6 +361,94 @@ public class RSAKeyPair {
     }
 
 
+
+    public static String getDHPublicKey(Context context, long localUserId, long remoteUserId){
+
+        DHPublicKeyStore  dhks = new DHPublicKeyStore(context);
+        SQLiteDatabase db = dhks.getReadableDatabase();
+
+        String[] projection = {
+                DHPublicKeyStore.DHPublicKeyEntry.COLUMN_NAME_LOCALID,
+                DHPublicKeyStore.DHPublicKeyEntry.COLUMN_NAME_REMOTEID,
+                DHPublicKeyStore.DHPublicKeyEntry.COLUMN_NAME_PUB_KEY
+
+        };
+
+        // this is just simple
+        // placeholder replacement
+        // not switching cases or anything
+        @SuppressLint("DefaultLocale")
+        String selection = String.format("(%s = %d AND %s = %d)",
+                DHPublicKeyStore.DHPublicKeyEntry.COLUMN_NAME_LOCALID,localUserId,
+                DHPublicKeyStore.DHPublicKeyEntry.COLUMN_NAME_REMOTEID,remoteUserId
+        );
+
+
+
+
+        Cursor c =db.query(DHPublicKeyStore.DHPublicKeyEntry.TABLE_NAME, // the table name
+                projection,
+                selection,
+                null,
+                null,
+                null,
+                null
+        );
+
+        c.moveToFirst();
+
+        int pub_keypos = c.getColumnIndexOrThrow(DHPublicKeyStore.DHPublicKeyEntry.COLUMN_NAME_PUB_KEY);
+        String pub_key = c.getString(pub_keypos);
+
+        return pub_key;
+
+
+    }
+
+    public static String getRSAPublicKey(Context context, long localUserId, long remoteUserId){
+
+        RSAPublicKeyStore  dhks = new RSAPublicKeyStore(context);
+        SQLiteDatabase db = dhks.getReadableDatabase();
+
+        String[] projection = {
+               RSAPublicKeyStore.RSAPublicKeyEntry.COLUMN_NAME_LOCALID,
+                RSAPublicKeyStore.RSAPublicKeyEntry.COLUMN_NAME_REMOTEID,
+                RSAPublicKeyStore.RSAPublicKeyEntry.COLUMN_NAME_PUB_KEY
+
+        };
+
+        // this is just simple
+        // placeholder replacement
+        // not switching cases or anything
+        @SuppressLint("DefaultLocale")
+        String selection = String.format("(%s = %d AND %s = %d)",
+                RSAPublicKeyStore.RSAPublicKeyEntry.COLUMN_NAME_LOCALID,localUserId,
+                RSAPublicKeyStore.RSAPublicKeyEntry.COLUMN_NAME_REMOTEID,remoteUserId
+        );
+
+
+
+
+        Cursor c =db.query(RSAPublicKeyStore.RSAPublicKeyEntry.TABLE_NAME, // the table name
+                projection,
+                selection,
+                null,
+                null,
+                null,
+                null
+        );
+
+        c.moveToFirst();
+
+        int pub_keypos = c.getColumnIndexOrThrow(DHPublicKeyStore.DHPublicKeyEntry.COLUMN_NAME_PUB_KEY);
+        String pub_key = c.getString(pub_keypos);
+
+        return pub_key;
+
+
+    }
+
+
     public static byte[] sign(PrivateKey priv, String data){
 
 
@@ -515,6 +603,47 @@ public class RSAKeyPair {
 
     }
 
+    public static String getMyRSAPublicKey(Context context,long localUserId,long remoteUserId){
+
+        RSAKeyStore  rsaks = new RSAKeyStore(context);
+        SQLiteDatabase db = rsaks.getReadableDatabase();
+
+        String[] projection = {
+                RSAKeyStore.RSAKeyEntry.COLUMN_NAME_LOCALID,
+                RSAKeyStore.RSAKeyEntry.COLUMN_NAME_REMOTEID,
+                RSAKeyStore.RSAKeyEntry.COLUMN_NAME_PRIV_KEY
+
+        };
+
+        // this is just simple
+        // placeholder replacement
+        // not switching cases or anything
+        @SuppressLint("DefaultLocale")
+        String selection = String.format("(%s = %d AND %s = %d)",
+                AesKeyStore.AesKeyEntry.COLUMN_NAME_LOCALID,localUserId,
+                AesKeyStore.AesKeyEntry.COLUMN_NAME_REMOTEID,remoteUserId
+        );
+
+
+
+
+        Cursor c =db.query(RSAKeyStore.RSAKeyEntry.TABLE_NAME, // the table name
+                projection,
+                selection,
+                null,
+                null,
+                null,
+                null
+        );
+
+        c.moveToFirst();
+        int keypos = c.getColumnIndexOrThrow(RSAKeyStore.RSAKeyEntry.COLUMN_NAME_PUB_KEY);
+        String key = c.getString(keypos);
+
+        return key;
+
+    }
+
 
     public static String[] getDHKey(Context context,long localUserId,long remoteUserId){
 
@@ -561,6 +690,21 @@ public class RSAKeyPair {
 
     }
 
+
+
+    final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
+    public static String fingerPrintFormat(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 3];
+        for ( int j = 0; j < bytes.length; j++ ) {
+
+
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 3 + 1] = hexArray[v >>> 4];
+            hexChars[j * 3 + 2] = hexArray[v & 0x0F];
+            hexChars[j * 3 ] = ':';
+        }
+        return new String(hexChars);
+    }
 
 
 

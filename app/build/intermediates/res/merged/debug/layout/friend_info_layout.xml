@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text = "Conversation information"
+        android:gravity="center_horizontal"
+        android:textStyle="bold"
+        />
+
+
+    <TextView
+        android:id="@+id/user_info_friend_rsa_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text = "Your Friend's public RSA Key fingerprint is:"
+        android:gravity="center_horizontal"
+        />
+
+    <TextView
+
+        android:id="@+id/their_rsa_key_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text = "01:23:45:67:89:AB:CD:EF"
+        />
+
+
+    <TextView
+        android:id="@+id/user_info_friend_dh_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text = "Your friend's public DH Key fingerprint is:"
+        android:gravity="center_horizontal"
+        />
+
+    <TextView
+        android:id="@+id/their_dh_key_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text = "10:23:45:67:89:AB:CD:EF"
+        />
+
+
+
+    <TextView
+        android:id="@+id/user_info_you_rsa_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text = "Your public RSA Key fingerprint is:"
+        android:gravity="center_horizontal"
+        />
+
+    <TextView
+        android:id="@+id/your_rsa_key_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text = "01:23:45:67:89:AB:CD:EF"
+        />
+
+
+    <TextView
+        android:id="@+id/user_info_you_dh_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text = "Your public DH Key fingerprint is:"
+        android:gravity="center_horizontal"
+        />
+
+    <TextView
+        android:id="@+id/your_dh_key_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text = "10:23:45:67:89:AB:CD:EF"
+        />
+
+
+
+
+
+
+
+    <TextView
+        android:layout_marginTop="10dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text = "Please verify your friend has matching fingerprints"
+        />
+
+    <Button
+        android:id="@+id/friend_req_info_dismiss"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ok"
+        android:layout_gravity="right" />
+
+</LinearLayout>

@@ -46,6 +46,47 @@ public class LoginActivity extends AppCompatActivity {
         sharedPref = getSharedPreferences(
                 getString(R.string.user_details_prefs), this.MODE_PRIVATE);
 
+        String def = sharedPref.getString("userinfo",null);
+
+        if(def != null){
+
+            JSONObject userinfo;
+
+            try{
+
+                userinfo = new JSONObject(def);
+
+                String token = userinfo.getString(getString(R.string.stored_user_token));
+                String un = userinfo.getString(getString(R.string.stored_username));
+                String uid = userinfo.getString(getString(R.string.stored_user_userid));
+                String fn = userinfo.getString(getString(R.string.stored_user_firstname));
+                String ln = userinfo.getString(getString(R.string.stored_user_lastname));
+                String serverUrl = userinfo.getString(getString(R.string.stored_server_url));
+                /**
+                if ((token != null) && (un != null) &&
+                        (uid != null) && (fn != null) && (ln != null) && (serverUrl != null)
+                {
+                }**/
+
+                Intent mainActivityLauncher = new Intent(getApplicationContext(),ContactsActivity.class);
+                mainActivityLauncher.putExtra("networkresponse",def);
+                mainActivityLauncher.putExtra("serverurl",serverUrl);
+                Toast.makeText(getApplicationContext(), def, Toast.LENGTH_SHORT).show();
+                mainActivityLauncher.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(mainActivityLauncher);
+
+
+
+            } catch (JSONException e){
+
+            }
+
+
+
+
+        }
+
+
         urlChoices = new ArrayList<String>(sharedPref.getStringSet("SAVED_URLS",new HashSet<String>()));
         urlAdapter = new ArrayAdapter<String>(getApplicationContext(),android.R.layout.simple_dropdown_item_1line,urlChoices);
 
@@ -135,6 +176,8 @@ public class LoginActivity extends AppCompatActivity {
                             Intent mainActivityLauncher = new Intent(parentContext,ContactsActivity.class);
                             mainActivityLauncher.putExtra("networkresponse",response);
                             mainActivityLauncher.putExtra("serverurl",mServerUrl);
+                            mainActivityLauncher.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
                             Toast.makeText(parentContext, response, Toast.LENGTH_SHORT).show();
 
 
@@ -153,6 +196,9 @@ public class LoginActivity extends AppCompatActivity {
                             editor.putString(getString(R.string.stored_user_firstname), loginResult.getString("firstname"));
                             editor.putString(getString(R.string.stored_user_lastname), loginResult.getString("lastname"));
                             editor.putString(getString(R.string.stored_server_url), mServerUrl);
+
+                            loginResult.put(getString(R.string.stored_server_url), mServerUrl);
+                            editor.putString("userinfo",loginResult.toString());
 
 
                             editor.commit();
